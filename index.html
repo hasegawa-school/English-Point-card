@@ -39,6 +39,7 @@ button{font-family:inherit}
 .qrCard{background:#fff;padding:28px;border-radius:24px;text-align:center;box-shadow:0 15px 50px #0005}
 .qrId{font-size:18px;margin-top:10px;letter-spacing:2px;font-weight:800}
 .toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:100;background:#173c5b;color:#fff;padding:28px 42px;border-radius:24px;font-size:34px;font-weight:1000;box-shadow:0 20px 60px #0004;white-space:pre-line;text-align:center}
+.pointToast{top:calc(50% + clamp(115px,14vw,190px));background:#173c5b;padding:16px 34px;font-size:30px;box-shadow:0 12px 35px #0004}
 .celebrate{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
 .star{position:absolute;font-size:38px;animation:fall 1.8s ease-out forwards}
 @keyframes fall{0%{transform:translateY(-10vh) scale(.4) rotate(0);opacity:0}20%{opacity:1}100%{transform:translateY(105vh) scale(1.4) rotate(720deg);opacity:0}}
@@ -116,7 +117,7 @@ button{font-family:inherit}
 <div id="imgModal" class="modal hidden"><div class="modalClose" onclick="closeImage()">×</div><img id="bigImage"></div>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbxVihqIBKL7GOEsF9z4k7ijqzYiW6WdPDffShfTtNjevqe28N_FmvxR8SJ8vq9F9o-w/exec';
+const API='https://script.google.com/macros/s/AKfycbzLQonoCntYG6QLyZEO7skoRDlc_emcu6ZLn6nxts-_maBX2cXYNbFHHLy5-GNfdUNa/exec';
 let me=null,target=null,scanner=null,canvas=null,ctx=null,drawing=false,teacherCode='',cameraPointerId=null;
 const $=id=>document.getElementById(id);
 
@@ -124,11 +125,14 @@ function post(body){
   return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)})
     .then(r=>r.json());
 }
-function toast(t,ms=1800){
-  $('toast').textContent=t;
-  $('toast').classList.remove('hidden');
-  setTimeout(()=>$('toast').classList.add('hidden'),ms);
+function toast(t,ms=1800,kind='normal'){
+  const el=$('toast');
+  el.textContent=t;
+  el.classList.toggle('pointToast',kind==='point');
+  el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'),ms);
 }
+function pointToast(){ toast('＋1 POINT!',1500,'point'); }
 function cleanQrText(s){return String(s??'').replace(/[\s\u200B-\u200D\uFEFF]/g,'').trim()}
 function validStudent(s){return /^\d{11}$/.test(s)}
 function validTeacher(s){return /^ts\d{6}$/i.test(s)}
@@ -235,6 +239,9 @@ async function stopScanner(){
   $('cameraPanel').classList.add('hidden');
 }
 
+let targetChecking=false;
+let targetReady=false;
+
 async function onScan(text){
   text=cleanQrText(text);
   if(validTeacher(text))text=text.toLowerCase();
@@ -246,14 +253,52 @@ async function onScan(text){
     toast('自分のQRは使えません。');
     return;
   }
+  if(targetChecking)return;
+
+  // カメラを止めた直後に、待ち時間を感じさせないよう先に手書き画面へ移行。
   await stopScanner();
   target={id:text};
+  targetChecking=true;
+  targetReady=false;
   openWriter();
+  $('sendBtn').disabled=true;
+  $('sendBtn').textContent='確認中…';
+
+  // サーバー上で「この自分→相手」の方向が、このセクションですでに使われていないか確認。
+  post({action:'checkDirectionalUse',studentId:cleanQrText(me.id),targetId:cleanQrText(text)})
+    .then(r=>{
+      if(!r.ok){
+        closeWriter();
+        toast('送信できる状態を確認できませんでした。',2200);
+        return;
+      }
+      if(r.used){
+        closeWriter();
+        toast('同じ人と２回できません。',2200);
+        return;
+      }
+      targetReady=true;
+      $('sendBtn').disabled=false;
+      $('sendBtn').textContent='送信';
+    })
+    .catch(()=>{
+      closeWriter();
+      toast('送信できる状態を確認できませんでした。',2200);
+    })
+    .finally(()=>{targetChecking=false;});
 }
 
 function openWriter(){
   $('writePanel').classList.remove('hidden');
   setupCanvas();
+}
+function closeWriter(){
+  $('writePanel').classList.add('hidden');
+  target=null;
+  targetReady=false;
+  $('sendBtn').disabled=false;
+  $('sendBtn').textContent='送信';
+  clearCanvas();
 }
 function setupCanvas(){
   canvas=$('canvas');
@@ -282,7 +327,7 @@ function clearCanvas(){
 }
 
 $('sendBtn').onclick=()=>{
-  if(!target||!me)return;
+  if(!target||!targetReady||!me)return;
   const image=canvas.toDataURL('image/jpeg',.65);
   $('sendBtn').disabled=true;
   post({
@@ -304,11 +349,9 @@ $('sendBtn').onclick=()=>{
       return;
     }
 
-    $('writePanel').classList.add('hidden');
-    target=null;
-    clearCanvas();
+    closeWriter();
     me.points=r.points;
-    toast('＋1 POINT!',1500);
+    pointToast();
     celebrate(!!r.teacherTarget);
     refresh();
   }).finally(()=>{$('sendBtn').disabled=false});
