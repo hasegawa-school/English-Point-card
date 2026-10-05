@@ -1,43 +1,158 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>English Point Card 2.0 - Teacher</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>English Point Card 2.0</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:Arial,"Noto Sans JP",sans-serif}.wrap{max-width:1400px;margin:auto;padding:18px}.top{display:flex;align-items:center;justify-content:space-between;background:white;border-radius:22px;padding:18px 24px;box-shadow:0 5px 20px #0001}.title{font-size:30px;font-weight:1000}.status{font-size:24px;font-weight:1000;padding:12px 20px;border-radius:999px}.active{background:#dcfce7;color:#166534}.locked{background:#e5e7eb;color:#374151}.grid{display:grid;grid-template-columns:1fr 330px;gap:18px;margin-top:18px}.panel{background:white;border-radius:22px;padding:20px;box-shadow:0 5px 20px #0001}.controls{display:flex;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:16px;padding:16px 22px;font-size:20px;font-weight:900;cursor:pointer}.unlock{background:#16a34a;color:white}.lock{background:#374151;color:white}.reset{background:#dc2626;color:white}.refresh{background:#e5e7eb}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.stat{background:#f8fafc;border-radius:16px;padding:15px;text-align:center}.num{font-size:38px;font-weight:1000}.label{font-weight:800}.qr{text-align:center}.teacherId{font-size:20px;font-weight:900;letter-spacing:2px;margin-top:8px}.tableWrap{overflow:auto;max-height:600px;margin-top:15px}table{width:100%;border-collapse:collapse}th,td{padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:center}th{position:sticky;top:0;background:#f8fafc}.answerImg{width:100px;height:60px;object-fit:contain;border:1px solid #ddd;border-radius:8px;cursor:pointer}.normal{background:#dcfce7}.invalid{background:#fee2e2}.reviewBtn{border:0;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}.footer{text-align:center;margin:20px;color:#667085}@media(max-width:900px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr 1fr}}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,"Noto Sans JP",sans-serif;background:#f4f7fb;color:#172033;touch-action:manipulation}
+.app{height:100dvh;display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:90px 1fr 74px;gap:16px;padding:16px}
+.header{grid-column:1/4;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:white;border-radius:22px;box-shadow:0 5px 20px #00000012}
+.logo{font-size:28px;font-weight:900}.section{font-size:18px;font-weight:800}.points{font-size:62px;font-weight:1000;line-height:1;color:#2563eb}
+.sideBtn{border:0;border-radius:28px;background:white;box-shadow:0 8px 25px #00000018;font-size:28px;font-weight:900;min-height:220px;cursor:pointer}.sideBtn:active{transform:scale(.97)}.qrBtn{color:#2563eb}.camBtn{color:#059669}
+.center{position:relative;display:flex;align-items:center;justify-content:center;border-radius:30px;background:white;box-shadow:0 8px 25px #00000012;overflow:hidden}
+.centerMain{text-align:center}.myLabel{font-size:20px;font-weight:800}.myPoints{font-size:120px;font-weight:1000;color:#2563eb;line-height:1}
+.footer{grid-column:1/4;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-weight:800}
+.total{font-size:24px}.id{font-size:12px;color:#667085}
+#qrHold,#cameraHold{display:none;position:absolute;inset:0;background:#0b1220;z-index:20;align-items:center;justify-content:center;flex-direction:column;color:white}
+#qrBox{background:white;padding:18px;border-radius:20px}.qrNum{margin-top:10px;font-size:16px;letter-spacing:2px}
+#video{width:min(78%,560px);max-height:76%;object-fit:cover;border-radius:20px;border:5px solid white}
+.scanText{margin-top:18px;font-size:24px;font-weight:900}.cameraHint{font-size:15px;margin-top:6px}
+#writer{display:none;position:absolute;inset:0;z-index:15;background:white;flex-direction:column;padding:18px}
+#writeCanvas{width:100%;flex:1;border:3px solid #cbd5e1;border-radius:20px;background:white;touch-action:none}
+.writeButtons{display:flex;gap:14px;margin-top:14px}.writeButtons button{flex:1;height:68px;border:0;border-radius:18px;font-size:25px;font-weight:900}.clear{background:#e5e7eb}.send{background:#2563eb;color:white}.send:disabled{background:#9ca3af}
+#status{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;font-size:18px;font-weight:900;padding:10px 20px;border-radius:999px;background:#fff;box-shadow:0 5px 20px #0002;display:none}
+#toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);z-index:1000;background:#2563eb;color:white;padding:25px 50px;border-radius:28px;font-size:54px;font-weight:1000;display:none;box-shadow:0 20px 70px #0005}
+#toast.show{display:block;animation:toast .8s ease-out}.teacherToast{background:linear-gradient(135deg,#d4af37,#fff2a8,#d4af37)!important;color:#513b00!important;font-size:68px!important}
+#locked{position:fixed;inset:0;z-index:900;background:#111827eF;color:white;display:none;align-items:center;justify-content:center;text-align:center}.lockBox{font-size:34px;font-weight:900}.lockSub{font-size:20px;margin-top:15px}
+#notice{position:fixed;inset:0;z-index:1100;background:#000b;display:none;align-items:center;justify-content:center;padding:25px}.noticeCard{width:min(700px,94vw);background:white;border-radius:30px;padding:40px;text-align:center;box-shadow:0 25px 80px #0008}.noticeTitle{font-size:44px;color:#e53935;font-weight:1000}.noticeBody{font-size:32px;font-weight:900;line-height:1.5;margin:22px 0}.noticeClose{border:0;border-radius:18px;background:#172033;color:white;font-size:24px;font-weight:900;padding:18px 50px}
+#sparkles{position:fixed;inset:0;pointer-events:none;z-index:999;display:none}
+.star{position:absolute;font-size:34px;animation:star 1.4s ease-out forwards}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}@keyframes star{0%{opacity:1;transform:translate(0,0) scale(.4) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1.5) rotate(360deg)}} 
+@media(max-width:800px){.app{grid-template-columns:130px 1fr 130px;gap:8px;padding:8px}.sideBtn{font-size:20px;min-height:160px}.myPoints{font-size:82px}.points{font-size:42px}.logo{font-size:20px}}
 </style>
 </head>
-<body><div class="wrap">
-<div class="top"><div class="title">English Point Card 2.0 — 先生画面</div><div id="state" class="status locked">🔒 ロック中</div></div>
-<div class="grid">
-<div>
-<div class="panel">
-<div class="stats"><div class="stat"><div class="num" id="total">0</div><div class="label">TOTAL POINTS</div></div><div class="stat"><div class="num" id="section">1</div><div class="label">SECTION</div></div><div class="stat"><div class="num" id="count">0</div><div class="label">回答数</div></div></div>
-<div class="controls"><button class="btn unlock" id="unlock">🔓 活動開始</button><button class="btn lock" id="lock">🔒 ロック</button><button class="btn refresh" id="refresh">↻ 更新</button><button class="btn reset" id="reset">🗑 授業リセット</button></div>
+<body>
+<div class="app">
+<header class="header"><div class="logo">English Point Card</div><div class="section" id="section">SECTION 1</div><div class="points" id="headerPoints">0</div></header>
+<button class="sideBtn qrBtn" id="qrButton">▣<br>My QR</button>
+<main class="center">
+  <div class="centerMain"><div class="myLabel">MY POINTS</div><div class="myPoints" id="myPoints">0</div></div>
+  <div id="qrHold"><div id="qrBox"></div><div class="qrNum" id="qrNum"></div><div class="cameraHint">指をはなすと閉じます</div></div>
+  <div id="cameraHold"><video id="video" playsinline muted></video><div class="scanText">相手のQRを読み取ってね</div><div class="cameraHint">カメラボタンを押している間だけ起動します</div></div>
+  <div id="writer"><canvas id="writeCanvas"></canvas><div class="writeButtons"><button class="clear" id="clearBtn">消す</button><button class="send" id="sendBtn" disabled>送信</button></div></div>
+  <div id="status"></div>
+</main>
+<button class="sideBtn camBtn" id="cameraButton">▣<br>カメラ</button>
+<footer class="footer"><div class="total">TOTAL POINTS <span id="total">0</span></div><div class="id" id="studentId"></div></footer>
 </div>
-<div class="panel"><h2>回答一覧</h2><div class="tableWrap"><table><thead><tr><th>児童</th><th>相手</th><th>回答（手書き）</th><th>状態</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div></div>
-</div>
-<div class="panel qr"><h2>先生QR</h2><div id="teacherQr"></div><div class="teacherId" id="teacherId"></div><p>児童がこのQRを読み取り、英語で話して回答を送信すると＋1 POINT。</p></div>
-</div>
-<div class="footer">© 2026 Hasegawa Konosuke. All rights reserved.</div>
-</div>
-<div id="modal" style="display:none;position:fixed;inset:0;background:#000b;align-items:center;justify-content:center;z-index:99"><img id="bigImg" style="max-width:90vw;max-height:90vh;background:white;border-radius:15px;padding:15px"></div>
+<div id="locked"><div><div class="lockBox">🔒 今は使えません</div><div class="lockSub">先生の指示を待ってね</div></div></div>
+<div id="toast"></div><div id="sparkles"></div>
+<div id="notice"><div class="noticeCard"><div class="noticeTitle" id="noticeTitle"></div><div class="noticeBody" id="noticeBody"></div><button class="noticeClose" id="noticeClose">確認しました</button></div></div>
 <script>
-const API='https://script.google.com/macros/s/AKfycbzLQonoCntYG6QLyZEO7skoRDlc_emcu6ZLn6nxts-_maBX2cXYNbFHHLy5-GNfdUNa/exec';
-const $=x=>document.getElementById(x);
-async function api(p){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)});return r.json()}
-async function init(){const d=await api({action:'teacherInfo'});if(!d.ok){alert('先生画面を読み込めませんでした。GASを再デプロイしてください。');return}if(!$('teacherQr').children.length)new QRCode($('teacherQr'),{text:d.teacherId,width:250,height:250});$('teacherId').textContent=d.teacherId;renderState(d);await refresh()}
-function renderState(d){$('state').textContent=d.locked?'🔒 ロック中':'🔓 活動中';$('state').className='status '+(d.locked?'locked':'active');$('section').textContent=d.section}
-async function refresh(){const d=await api({action:'teacherState'});if(!d.ok)return;renderState(d);$('total').textContent=d.total;$('count').textContent=d.currentAnswerCount;$('section').textContent=d.section;const rows=$('rows');rows.innerHTML='';d.answers.forEach(a=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${esc(a.studentId)}</td><td>${esc(a.targetId)}</td><td>${a.imageId?`<img class="answerImg" data-id="${esc(a.imageId)}">`:'-'}</td><td class="${a.status==='INVALID'?'invalid':'normal'}">${a.status==='INVALID'?'🔴 不正':'🟢 正常'}</td><td>${a.status==='INVALID'?'<button class="reviewBtn" data-action="normal">正常に戻す</button>':'<button class="reviewBtn" data-action="invalid">不正</button>'}</td>`;tr.querySelector('.answerImg')?.addEventListener('click',()=>showImage(a.imageId));tr.querySelector('.reviewBtn').addEventListener('click',()=>review(a.answerId,tr.querySelector('.reviewBtn').dataset.action));rows.appendChild(tr)})}
-async function review(id,status){await api({action:'review',answerId:id,status:status.toUpperCase()});await refresh()}
-$('unlock').onclick=async()=>{if(!confirm('新しい活動を開始します。よろしいですか？'))return;await api({action:'setLock',locked:false});await refresh()};
-$('lock').onclick=async()=>{await api({action:'setLock',locked:true});await refresh()};
-$('refresh').onclick=refresh;
-$('reset').onclick=async()=>{if(!confirm('ポイント・回答・不正判定・ペア履歴をすべてリセットします。よろしいですか？'))return;await api({action:'reset'});await refresh()};
-async function showImage(id){const d=await api({action:'getImage',imageId:id});if(!d.ok)return;$('bigImg').src=`data:${d.mime};base64,${d.base64}`;$('modal').style.display='flex'}
-$('modal').onclick=()=>{$('modal').style.display='none'};
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-setInterval(refresh,3000);init();
+const API='https://script.google.com/macros/s/AKfycbwVALpt4ieySXmQB24UNevYhRMCAO2KGOwJYAKN-OdQuh5M2LwnsrB1TmC7y1bRaaJL/exec';
+let studentId=localStorage.getItem('epc_student_id')||'';
+let targetId='',targetReady=false,stream=null,raf=0,pressTimer=null;
+const $=id=>document.getElementById(id);
+
+async function api(payload){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});return await r.json()}
+
+async function init(){
+  if(!/^\d{11}$/.test(studentId)){const d=await api({action:'createStudent'});studentId=d.id;localStorage.setItem('epc_student_id',studentId)}
+  $('studentId').textContent=studentId;
+  $('qrNum').textContent=studentId;
+  new QRCode($('qrBox'),{text:studentId,width:240,height:240,correctLevel:QRCode.CorrectLevel.M});
+  await refresh();
+  setInterval(refresh,3000);
+}
+async function refresh(){
+  try{
+    const d=await api({action:'studentState',id:studentId});
+    if(!d.ok)return;
+    $('myPoints').textContent=d.points;$('headerPoints').textContent=d.points;$('total').textContent=d.total;$('section').textContent='SECTION '+d.section;
+    $('locked').style.display=d.locked?'flex':'none';
+    if(d.notice)showNotice(d.notice);
+  }catch(e){console.warn(e)}
+}
+function showNotice(n){$('noticeTitle').textContent=n.title;$('noticeBody').textContent=n.body;$('notice').style.display='flex'}
+$('noticeClose').onclick=()=>{$('notice').style.display='none'};
+
+function hold(button,down,up){
+ button.addEventListener('pointerdown',e=>{e.preventDefault();down();});
+ ['pointerup','pointercancel','pointerleave'].forEach(x=>button.addEventListener(x,e=>{e.preventDefault();up();}));
+}
+hold($('qrButton'),()=>{$('qrHold').style.display='flex'},()=>{$('qrHold').style.display='none'});
+
+hold($('cameraButton'),startCamera,stopCamera);
+
+async function startCamera(){
+ if($('locked').style.display==='flex')return;
+ if(stream)return;
+ $('cameraHold').style.display='flex';
+ try{
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+   $('video').srcObject=stream;await $('video').play();scan();
+ }catch(e){$('cameraHold').style.display='none';alert('カメラを使用できません。Chromeのカメラ許可を確認してください。')}
+}
+function stopCamera(){if(!stream)return;cancelAnimationFrame(raf);stream.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;$('cameraHold').style.display='none'}
+function scan(){
+ if(!stream)return;
+ const v=$('video'),c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});
+ if(v.readyState>=2){
+   c.width=v.videoWidth;c.height=v.videoHeight;
+   ctx.drawImage(v,0,0,c.width,c.height);
+   const img=ctx.getImageData(0,0,c.width,c.height);
+   const qr=jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
+   if(qr&&qr.data){handleQR(qr.data);return}
+ }
+ raf=requestAnimationFrame(scan);
+}
+async function handleQR(raw){
+ stopCamera();
+ const target=String(raw).trim();
+ if(!/^(?:\d{11}|ts\d{6})$/.test(target)){showStatus('無効なQRです。');return}
+ if(target===studentId){showStatus('自分のQRは使えません。');return}
+ const d=await api({action:'checkDirectionalUse',fromId:studentId,toId:target});
+ if(!d.ok){if(d.locked)showStatus('🔒 今は使えません');else showStatus('無効なQRです。');return}
+ if(d.used){showStatus('同じ人と２回できません。');return}
+ targetId=target;targetReady=true;openWriter();$('sendBtn').disabled=false;
+}
+function showStatus(t){$('status').textContent=t;$('status').style.display='block';clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>$('status').style.display='none',2500)}
+function openWriter(){$('writer').style.display='flex';resizeCanvas();clearCanvas()}
+function resizeCanvas(){const c=$('writeCanvas');const r=c.getBoundingClientRect();const old=c.width?c.toDataURL():null;c.width=Math.max(300,r.width*devicePixelRatio);c.height=Math.max(200,r.height*devicePixelRatio);const x=c.getContext('2d');x.scale(devicePixelRatio,devicePixelRatio);x.fillStyle='white';x.fillRect(0,0,r.width,r.height);x.lineWidth=5;x.lineCap='round';x.lineJoin='round';}
+function clearCanvas(){resizeCanvas()}
+let drawing=false;
+const canvas=$('writeCanvas');
+canvas.addEventListener('pointerdown',e=>{drawing=true;canvas.setPointerCapture(e.pointerId);const p=pos(e);const x=canvas.getContext('2d');x.beginPath();x.moveTo(p.x,p.y)});
+canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e),x=canvas.getContext('2d');x.lineTo(p.x,p.y);x.stroke()});
+canvas.addEventListener('pointerup',()=>drawing=false);canvas.addEventListener('pointercancel',()=>drawing=false);
+function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+$('clearBtn').onclick=clearCanvas;
+$('sendBtn').onclick=async()=>{
+ if(!targetReady||!targetId)return;
+ const btn=$('sendBtn');btn.disabled=true;btn.textContent='送信中…';
+ const data=canvas.toDataURL('image/png');
+ try{
+  const d=await api({action:'submit',fromId:studentId,toId:targetId,imageData:data});
+  if(d.ok){$('writer').style.display='none';targetReady=false;targetId='';showPointToast(d.isTeacher);refresh()}
+  else if(d.duplicate){$('writer').style.display='none';targetReady=false;showStatus('同じ人と２回できません。')}
+  else if(d.locked){$('writer').style.display='none';targetReady=false;showStatus('🔒 今は使えません')}
+  else showStatus('送信できませんでした。');
+ }catch(e){showStatus('通信エラーです。')}
+ btn.textContent='送信';btn.disabled=!targetReady;
+};
+function showPointToast(isTeacher){
+ const t=$('toast');t.textContent='＋1 POINT!';t.className=isTeacher?'teacherToast show':'show';t.style.display='block';
+ if(isTeacher)specialStars();else setTimeout(()=>{t.style.display='none';t.className=''},800);
+}
+function specialStars(){
+ const s=$('sparkles');s.style.display='block';s.innerHTML='';
+ for(let i=0;i<45;i++){const e=document.createElement('div');e.className='star';e.textContent=['★','✦','✧','⭐'][Math.floor(Math.random()*4)];e.style.left='50%';e.style.top='50%';e.style.setProperty('--x',(Math.random()*90-45)+'vw');e.style.setProperty('--y',(Math.random()*90-45)+'vh');s.appendChild(e)}
+ setTimeout(()=>{s.style.display='none';$('toast').style.display='none';$('toast').className=''},1500);
+}
+init();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-</body></html>
+</body>
+</html>
