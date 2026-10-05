@@ -9,7 +9,7 @@
 <section id="teacher" class="teacher"><div class="teacherHead"><b>English Point Card — 先生</b><div><span id="teacherStatus">🔓 活動中</span> <button id="lockBtn">🔒 ロック</button> <button id="resetBtn" class="danger">授業をリセット</button></div></div><div class="teacherGrid"><div class="panel"><h2>現在</h2><div id="teacherTotal" style="font-size:50px;font-weight:1000">0</div><div>セクション <span id="section">1</span></div></div><div class="panel"><h2>回答一覧</h2><div id="answers"></div></div></div></section>
 <div id="imgModal" class="modal hidden"><div class="modalClose" onclick="closeImage()">×</div><img id="bigImage"></div>
 <script>
-const API='__GAS_WEB_APP_URL__';let me=null,target=null,scanner=null,canvas,ctx,drawing=false,teacherCode='',cameraPointerId=null;
+const API='https://script.google.com/macros/s/AKfycbyT-Xncz2-OL_Lo6A90xyCgXm1Qxu12gxFGAhWDPLhAdsSqjLOizXVEz1FKivcRXxZD/exec';let me=null,target=null,scanner=null,canvas,ctx,drawing=false,teacherCode='',cameraPointerId=null;
 const $=id=>document.getElementById(id);function post(body){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(r=>r.json());}
 function toast(t,ms=1800){$('toast').textContent=t;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),ms)}
 function validStudent(s){return /^\d{11}$/.test(s)}function validTeacher(s){return /^ts\d{6}$/.test(s)}
