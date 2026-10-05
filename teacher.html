@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>English Point Card 2.0 | 先生</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;background:#f4f7fb;color:#172033}
+button{font:inherit;cursor:pointer}
+.header{background:#16243d;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.header h1{margin:0;font-size:clamp(20px,2.4vw,30px)}
+.header small{opacity:.75}
+.wrap{max-width:1400px;margin:0 auto;padding:18px}
+.top{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border-radius:18px;box-shadow:0 5px 20px rgba(20,35,60,.08);padding:20px}
+.status{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.statusBadge{font-size:22px;font-weight:800;padding:12px 20px;border-radius:999px}
+.active{background:#e6f7ed;color:#08753e}
+.locked{background:#eef0f4;color:#4c5668}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.action{border:0;border-radius:12px;padding:12px 18px;font-weight:800}
+.lockBtn{background:#1c8c54;color:white}.unlockBtn{background:#2d6cdf;color:white}.resetBtn{background:#e84b4b;color:white}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#f5f7fa;border-radius:14px;padding:16px;text-align:center}
+.stat .num{font-size:38px;font-weight:900;line-height:1.1}
+.stat .label{font-size:13px;color:#687386;margin-top:4px}
+.qrCard{display:flex;align-items:center;gap:20px}
+#teacherQr{width:150px;height:150px;display:flex;align-items:center;justify-content:center}
+.qrInfo strong{display:block;font-size:18px;margin-bottom:5px}
+.qrCode{font-family:monospace;font-size:20px;letter-spacing:2px}
+.note{font-size:13px;color:#667085;margin-top:8px}
+.answersHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.answersHeader h2{margin:0}
+.refresh{border:1px solid #ccd3df;background:white;border-radius:10px;padding:8px 13px}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px}
+th,td{padding:12px 10px;border-bottom:1px solid #e7ebf0;text-align:left;vertical-align:middle}
+th{background:#f7f9fc;font-size:13px;color:#596579;position:sticky;top:0}
+.id{font-family:monospace;font-size:14px}
+.answerThumb{width:110px;height:72px;object-fit:contain;border:1px solid #d9dee7;border-radius:8px;background:#fff;cursor:pointer}
+.state{font-weight:800}
+.good{color:#16864c}.bad{color:#d42f2f}
+.reviewBtn{border:0;border-radius:9px;padding:8px 11px;margin-right:5px;font-weight:700}
+.goodBtn{background:#e7f6ee;color:#137844}.badBtn{background:#fdeaea;color:#c72f2f}
+.empty{text-align:center;color:#7b8492;padding:35px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:#16243d;color:white;padding:13px 20px;border-radius:999px;font-weight:800;pointer-events:none;transition:.25s;z-index:20}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal{position:fixed;inset:0;background:rgba(10,18,32,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:30}
+.modal.show{display:flex}
+.modalBox{background:white;border-radius:18px;max-width:900px;max-height:90vh;padding:15px;position:relative}
+.modalBox img{max-width:85vw;max-height:78vh;display:block;object-fit:contain}
+.close{position:absolute;right:8px;top:8px;border:0;background:#16243d;color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px}
+.footer{text-align:center;color:#8791a2;font-size:12px;padding:20px}
+@media(max-width:800px){
+ .top{grid-template-columns:1fr}
+ .qrCard{justify-content:center}
+ .header{padding:15px}
+ .wrap{padding:12px}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div>
+    <h1>English Point Card 2.0</h1>
+    <small>先生用管理画面</small>
+  </div>
+  <div id="connection">接続中…</div>
+</header>
+
+<main class="wrap">
+  <section class="top">
+    <div class="card">
+      <div class="status">
+        <div>
+          <div id="statusBadge" class="statusBadge locked">🔒 ロック中</div>
+          <div id="sectionText" class="note">セクション 1</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div id="total" class="num">0</div><div class="label">TOTAL POINTS</div></div>
+          <div class="stat"><div id="answerCount" class="num">0</div><div class="label">回答数</div></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="lockBtn" class="action lockBtn">🔓 活動を開始する</button>
+        <button id="resetBtn" class="action resetBtn">↺ 授業をリセット</button>
+        <button id="refreshBtn" class="refresh">↻ 更新</button>
+      </div>
+    </div>
+
+    <div class="card qrCard">
+      <div id="teacherQr"></div>
+      <div class="qrInfo">
+        <strong>先生QR</strong>
+        <div class="qrCode" id="teacherCode">読み込み中…</div>
+        <div class="note">児童がこのQRを読み取ると、先生との活動として記録されます。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="answersHeader">
+      <h2>回答チェック</h2>
+      <span class="note">手書き画像をクリックすると拡大できます</span>
+    </div>
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>児童</th><th>相手</th><th>回答（手書き欄）</th><th>状態</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="answerBody">
+          <tr><td colspan="5" class="empty">回答を読み込んでいます…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="footer">© 2026 Hasegawa Konosuke. All rights reserved.</div>
+<div id="toast"></div>
+
+<div id="modal" class="modal">
+  <div class="modalBox">
+    <button class="close" id="closeModal">×</button>
+    <img id="modalImage" alt="手書き回答">
+  </div>
+</div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbzLQonoCntYG6QLyZEO7skoRDlc_emcu6ZLn6nxts-_maBX2cXYNbFHHLy5-GNfdUNa/exec';
+let current=null;
+let busy=false;
+
+async function post(body){
+  const res=await fetch(API,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(body)
+  });
+  return await res.json();
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  if(!current)return;
+  const locked=current.locked;
+  const badge=document.getElementById('statusBadge');
+  badge.textContent=locked?'🔒 ロック中':'🔓 活動中';
+  badge.className='statusBadge '+(locked?'locked':'active');
+  document.getElementById('sectionText').textContent='セクション '+current.section;
+  document.getElementById('total').textContent=current.total;
+  document.getElementById('answerCount').textContent=current.answers.length;
+
+  const btn=document.getElementById('lockBtn');
+  btn.textContent=locked?'🔓 活動を開始する':'🔒 活動をロックする';
+  btn.className='action '+(locked?'unlockBtn':'lockBtn');
+
+  const body=document.getElementById('answerBody');
+  if(!current.answers.length){
+    body.innerHTML='<tr><td colspan="5" class="empty">まだ回答はありません。</td></tr>';
+    return;
+  }
+
+  body.innerHTML=current.answers.slice().reverse().map(a=>{
+    const state=a.status==='INVALID'
+      ? '<span class="state bad">🔴 不正</span>'
+      : '<span class="state good">🟢 正常</span>';
+    const img=a.imageId
+      ? `<img class="answerThumb" src="${API}?action=image&id=${encodeURIComponent(a.imageId)}" data-image="${escapeHtml(a.imageId)}" alt="手書き回答">`
+      : '—';
+    return `<tr>
+      <td class="id">${escapeHtml(a.studentId)}</td>
+      <td class="id">${escapeHtml(a.targetId)}</td>
+      <td>${img}</td>
+      <td>${state}</td>
+      <td>
+        <button class="reviewBtn goodBtn" data-id="${escapeHtml(a.answerId)}" data-valid="true">🟢 正常</button>
+        <button class="reviewBtn badBtn" data-id="${escapeHtml(a.answerId)}" data-valid="false">🔴 不正</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('.answerThumb').forEach(img=>{
+    const id=img.dataset.image;
+    loadImage(id).then(src=>{
+      if(src){ img.src=src; img.addEventListener('click',()=>openImage(src)); }
+    });
+  });
+  body.querySelectorAll('.reviewBtn').forEach(btn=>{
+    btn.addEventListener('click',()=>review(btn.dataset.id,btn.dataset.valid==='true'));
+  });
+}
+
+async function loadImage(id){
+  try{
+    const r=await fetch(`${API}?action=image&id=${encodeURIComponent(id)}`);
+    const j=await r.json();
+    if(!j.ok) return '';
+    return `data:${j.mime};base64,${j.base64}`;
+  }catch(e){ return ''; }
+}
+
+function openImage(src){
+  document.getElementById('modalImage').src=src;
+  document.getElementById('modal').classList.add('show');
+}
+
+async function load(){
+  if(busy)return;
+  busy=true;
+  try{
+    const r=await post({action:'teacherState'});
+    if(!r.ok)throw new Error(r.error||'STATE_ERROR');
+    current=r;
+    document.getElementById('connection').textContent='● 接続中';
+    render();
+  }catch(e){
+    document.getElementById('connection').textContent='接続エラー';
+    toast('先生画面を読み込めませんでした。');
+    console.error(e);
+  }finally{busy=false;}
+}
+
+async function toggleLock(){
+  if(!current)return;
+  const next=!current.locked;
+  if(!next && !confirm('活動を開始しますか？\n開始すると新しいセクションになります。'))return;
+  try{
+    const r=await post({action:'setLock',locked:next});
+    if(!r.ok)throw new Error(r.error);
+    current=r;
+    render();
+    toast(next?'活動をロックしました。':'新しい活動を開始しました。');
+  }catch(e){toast('変更できませんでした。');}
+}
+
+async function resetAll(){
+  if(!confirm('授業をリセットしますか？\n\n・ポイントを0にする\n・回答履歴を消す\n・ペア履歴をリセット\n・通知を消す\n・新しいセクションを開始\n\nこの操作は元に戻せません。'))return;
+  try{
+    const r=await post({action:'reset'});
+    if(!r.ok)throw new Error(r.error);
+    current={...r,answers:[]};
+    render();
+    toast('授業をリセットしました。');
+  }catch(e){toast('リセットできませんでした。');}
+}
+
+async function review(answerId,valid){
+  try{
+    const r=await post({action:'review',answerId,valid});
+    if(!r.ok)throw new Error(r.error);
+    await load();
+    if(!valid)toast('不正なポイントをけしました。');
+    else toast('正常に戻しました。');
+  }catch(e){toast('回答の変更に失敗しました。');}
+}
+
+document.getElementById('lockBtn').addEventListener('click',toggleLock);
+document.getElementById('resetBtn').addEventListener('click',resetAll);
+document.getElementById('refreshBtn').addEventListener('click',load);
+document.getElementById('closeModal').addEventListener('click',()=>document.getElementById('modal').classList.remove('show'));
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target.id==='modal')e.currentTarget.classList.remove('show');
+});
+
+async function init(){
+  try{
+    const r=await post({action:'teacherInfo'});
+    if(r.ok){
+      document.getElementById('teacherCode').textContent=r.code;
+      new QRCode(document.getElementById('teacherQr'),{
+        text:r.code,width:150,height:150,
+        correctLevel:QRCode.CorrectLevel.M
+      });
+    }
+  }catch(e){}
+  await load();
+  setInterval(load,3000);
+}
+init();
+</script>
+</body>
+</html>
